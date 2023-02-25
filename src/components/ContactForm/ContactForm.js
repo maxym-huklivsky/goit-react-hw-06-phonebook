@@ -8,14 +8,48 @@ import {
 } from './ContactForm.styled';
 import { Formik, Field, ErrorMessage } from 'formik';
 import * as yup from 'yup';
-import PropTypes from 'prop-types';
+import { useDispatch, useSelector } from 'react-redux';
+import { addContact } from 'redux/contactsSlice';
+import { getContacts } from 'redux/selectors';
 
 const schema = yup.object().shape({
   name: yup.string().trim().min(4).max(24).required(),
   number: yup.string().trim().min(6).max(13).required(),
 });
 
-export const ContactForm = ({ onAddContact }) => {
+export const ContactForm = () => {
+  const dispatch = useDispatch();
+  const contacts = useSelector(getContacts);
+
+  const handlerContact = (values, actions) => {
+    const { name, number } = values;
+
+    // Check name for repetition
+    const normalizeName = name.toLowerCase();
+    const NameAlreadyInContacts = contacts.find(
+      ({ name: nameOfContact }) => nameOfContact.toLowerCase() === normalizeName
+    );
+    if (NameAlreadyInContacts) {
+      return alert(`${name} is already in contacts.`);
+    }
+
+    // Check number for repetition
+    let thisNameOfContact = null;
+    const NumberAlreadyInContacts = contacts.find(
+      ({ number: numberOfContact, name: nameOfContact }) => {
+        thisNameOfContact = numberOfContact === number && nameOfContact;
+        return numberOfContact === number;
+      }
+    );
+    if (NumberAlreadyInContacts) {
+      return alert(`${number}(${thisNameOfContact}) is already in contacts.`);
+    }
+
+    dispatch(addContact(name, number));
+
+    actions.resetForm();
+  };
+
   const idForNameInput = nanoid();
   const idForNumberInput = nanoid();
 
@@ -23,7 +57,7 @@ export const ContactForm = ({ onAddContact }) => {
     <Formik
       initialValues={{ name: '', number: '+' }}
       validationSchema={schema}
-      onSubmit={onAddContact}
+      onSubmit={handlerContact}
     >
       <FormContacts>
         <InputWrapper>
@@ -42,8 +76,4 @@ export const ContactForm = ({ onAddContact }) => {
       </FormContacts>
     </Formik>
   );
-};
-
-ContactForm.propTypes = {
-  onAddContact: PropTypes.func.isRequired,
 };
